@@ -25,16 +25,15 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import json
 import os
-
+import uuid
 
 # Local imports:
 from tools import find_object, count_objects, search_for_specific_person, find_item_with_characteristic, get_person_gesture, get_all_items, speak, listen, question_and_answer, answer_question, go_to_location, go_back, follow_person, stop_robot, ask_for_object, give_object
 from prompts import agent_system_prompt_memory, evaluator_system_prompt, evaluator_user_prompt
-from utils import format_few_shot_examples
+from utils import format_few_shot_examples, format_few_shot_examples_solutions
 
 _ = load_dotenv()
 
-example_task = "Grab a bottle, and bring it to the living room"
 # Local embeddings
 """
 # Local embeddings
@@ -60,6 +59,88 @@ store = InMemoryStore(
     index={"embed": embed_model}
 )
 
+# Feeding evaluator examples to the store
+
+evaluator_examples = []
+
+evaluator_examples.append({
+    "task": "Grab a bottle, and bring it to the living room",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Go to the kitchen and find a Person",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Go to the sofa and find Richard",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "follow me until you find a bottle",
+    "label": "unfeasible"
+})
+
+evaluator_examples.append({
+    "task": "Do a backflip",
+    "label": "unfeasible"
+})
+
+evaluator_examples.append({
+    "task": "Make my breakfast",
+    "label": "unfeasible"
+})
+
+evaluator_examples.append({
+    "task": "Go to the store and bring me some eggs",
+    "label": "unfeasible"
+})
+
+evaluator_examples.append({
+    "task": "Go to the Hawaii and bring me a coconut",
+    "label": "unfeasible"
+})
+
+for example in evaluator_examples:
+    store.put(
+        ("task_evaluator", "david", "examples"), 
+        str(uuid.uuid4()), 
+        example
+    )
+
+# Feeding solutions examples to the store
+
+solution_examples = []
+
+solution_examples.append({
+    "task": "Go to the kitchen and find a Person",
+    "solution":"""
+    go_to_location("kitchen")
+    find_object("person")
+    """
+})
+
+solution_examples.append({
+    "task": "Go to the kitchen and find Richard",
+    "solution":"""
+    go_to_location("kitchen")
+    find_object("person")
+    if "yes" in answer_question("Are you Richard?"):
+        speak("I Found Richard!")
+    else:
+        speak("I Could Not Find Richard!")
+    """
+})
+
+
+for example in solution_examples:
+    store.put(
+        ("task_assistant", "david", "examples"), 
+        str(uuid.uuid4()), 
+        example
+    )
 
 llm = AzureChatOpenAI(api_key=os.getenv("AZURE_OPENAI_API_KEY"),azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"), azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"))
 
@@ -89,7 +170,7 @@ def evaluator_router(state: State, config, store) -> Command[
     task = state['task_input']['task']
 
     namespace = (
-        "robot_assistant",
+        "task_evaluator",
         config['configurable']['langgraph_user_id'],
         "examples"
     )
@@ -171,13 +252,26 @@ tools = [
 prompt_instructions = {
     "task_instructions": "Use these tools when appropriate to fulfill the given task."
 }
+    
+config = {"configurable": {"langgraph_user_id": "david"}}
+
+solution_examples = store.search(
+    (
+        "task_assistant",
+        config['configurable']['langgraph_user_id'],
+        "examples", 
+    ),
+    query=str({"task": "task_agent"})
+) 
+examples=format_few_shot_examples_solutions(solution_examples)
 
 def create_prompt(state):
     return [
         {
             "role": "system", 
             "content": agent_system_prompt_memory.format(
-                instructions=prompt_instructions["task_instructions"]
+                instructions=prompt_instructions["task_instructions"],
+                examples=examples
             )
         }
     ] + state['messages']
@@ -204,10 +298,9 @@ with open('graph.png', 'wb') as f:
     
 
 task_input = {
-    "task": "Go to the kitchen and find a bottle",
+    "task": "Go to the kitchen and find a Person",
 }
 
-config = {"configurable": {"langgraph_user_id": "lance"}}
 
 print("Task input:", task_input)
 response = robot_agent.invoke(
@@ -217,6 +310,22 @@ response = robot_agent.invoke(
 
 for m in response["messages"]:
     m.pretty_print()
+    
+    
+while True:
+    print("Waiting for task input...")
+    task_input = input("Enter a task: ")
+    if task_input.lower() == "exit":
+        break
 
+    task_input = {
+        "task": task_input,
+    }
 
+    response = robot_agent.invoke(
+        {"task_input": task_input},
+        config=config
+    )
 
+    for m in response["messages"]:
+        m.pretty_print()

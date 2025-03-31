@@ -22,7 +22,7 @@ You have access to the following tools to fulfill your tasks:
 10. answer_question(question) - Gives you the answer to the question
 11. go_to_location(location) - Moves to the specified location
 12. go_back() - Moves back to the previous location
-13. follow_person() - Follows the person in front of you until they touch your head
+13. follow_person() - Follows the person in front of you until they touch your head. This is a blocking call, meaning you will not be able to do anything else until the person touches your head.
 14. stop_robot() - Stops your movement (wheels)
 15. ask_for_object(object_name) - Asks the person in front of you to give you an object
 16. give_object(object_name) - Gives the object to the person in front of you
@@ -33,6 +33,10 @@ You have access to the following tools to fulfill your tasks:
 < Instructions >
 {instructions}
 </ Instructions >
+
+< Few shot examples >
+{examples}
+</ Few shot examples >
 """
 
 # Evaluator prompt
