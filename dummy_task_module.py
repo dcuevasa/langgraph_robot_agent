@@ -55,14 +55,14 @@ class Task_module:
 
     def speech2text_srv(self, seconds=0, lang="eng"):
         """Simulación de reconocimiento de voz"""
-        text = "Esto es una respuesta simulada"
+        text = "Toby"
         print(self.console_formatter.format("[SPEECH] Escuchando", "OKGREEN"))
         print(self.console_formatter.format("[SPEECH] Texto reconocido: " + text, "OKGREEN"))
         return text
 
     def q_a(self, question):
         """Simulación de preguntas y respuestas"""
-        answer = "Esta es una respuesta simulada a tu pregunta"
+        answer = "yes, toby, jackob"
         print(self.console_formatter.format("[SPEECH] Pregunta y respuesta", "OKGREEN"))
         return answer
 

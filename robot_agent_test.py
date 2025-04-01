@@ -63,6 +63,8 @@ store = InMemoryStore(
 
 evaluator_examples = []
 
+# Feasible examples
+
 evaluator_examples.append({
     "task": "Grab a bottle, and bring it to the living room",
     "label": "feasible"
@@ -99,6 +101,38 @@ evaluator_examples.append({
 })
 
 evaluator_examples.append({
+    "task": "Find out who sells the best pizzas in town",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Go to the kitchen and tell Charlie who sells the best pizzas in town",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "discover the name of the person that sells good donuts in the mall",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Find out who sells bracelets in my house, then go to my sisters bedroom and tell her who sells bracelets",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Search the whole house until you find a cellphone",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Search the whole office until you find a chair",
+    "label": "feasible"
+})
+
+# Unfeasible examples
+
+evaluator_examples.append({
     "task": "follow me until you find a bottle",
     "label": "unfeasible"
 })
@@ -119,7 +153,7 @@ evaluator_examples.append({
 })
 
 evaluator_examples.append({
-    "task": "Go to the Hawaii and bring me a coconut",
+    "task": "Go to Hawaii and bring me a coconut",
     "label": "unfeasible"
 })
 
@@ -146,11 +180,21 @@ solution_examples.append({
     "task": "Go to the kitchen and find Richard",
     "solution":"""
     go_to_location("kitchen")
-    find_object("person")
-    if "yes" in question_and_answer("Are you Richard?"):
-        speak("I Found Richard!")
-    else:
-        speak("I Could Not Find Richard!")
+    if find_object("person"):
+        if "yes" in question_and_answer("Are you Richard?"):
+            speak("I Found Richard!")
+        else:
+            speak("I Could Not Find Richard!")
+    """
+})
+
+solution_examples.append({
+    "task": "My name is david and I want you to remember it",
+    "solution":"""
+    manage_memory(
+        "name", 
+        "david"
+    )
     """
 })
 
@@ -167,6 +211,50 @@ solution_examples.append({
     "solution":"""
     person_name = search_memory("last person who spoke with me")
     speak(f"Your name is {person_name}")
+    """
+})
+
+solution_examples.append({
+    "task": "Find out who sells the best pizzas in town",
+    "solution":"""
+    if find_object("person"):
+        speak("Hi!")
+        answer = question_and_answer("Who sells the best pizza in town?")
+        manage_memory(
+            "best pizza in town", 
+            answer
+        )
+    else:
+        speak("I Could Not Find Anyone!")
+    """
+})
+
+solution_examples.append({
+    "task": "Go to the kitchen and tell Charlie who sells the best pizzas in town",
+    "solution":"""
+    go_to_location("kitchen")
+    if find_object("person"):
+        if "yes" in question_and_answer("Are you Charlie?"):
+            answer = search_memory("best pizza in town")
+            if answer:
+                speak(f"Charlie, {answer}")
+            else:
+                speak("I'm sorry, I don't know who sells the best pizza in town.")
+        else:
+            speak("I Could Not Find Charlie!")
+    """
+})
+
+solution_examples.append({
+    "task": "Go to my mom's room and tell her who sell bracelets",
+    "solution":"""
+    go_to_location("mom_room")
+    if find_object("person"):
+        answer = search_memory("who sells bracelets")
+        if answer:
+            speak(f"Mom, {answer}")
+        else:
+            speak("I'm sorry, I don't know who sells bracelets")
     """
 })
 
@@ -224,12 +312,19 @@ def evaluator_router(state: State, config, store) -> Command[
     user_prompt = evaluator_user_prompt.format(
         task=task, 
     )
-    result = llm_router.invoke(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-    )
+    try:
+        result = llm_router.invoke(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+        )
+    except Exception as e:
+        print(f"Error: {e}")
+        result = Router(
+            classification="unfeasible",
+            reasoning="The task is unfeasible due to an error in the evaluation process."
+        )
     if result.classification == "feasible":
         print("✅ Classification: FEASIBLE - This task is feasible")
         goto = "task_agent"
