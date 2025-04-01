@@ -16,7 +16,7 @@ class Task_module:
     # Perception functions
     def find_object(self, object_name, timeout=25, ignore_already_seen=False):
         """Simulación de búsqueda de objeto"""
-        print(self.console_formatter.format("[PERCEPTION] Buscando objeto", "OKBLUE"))
+        print(self.console_formatter.format("[PERCEPTION] Buscando objeto:"+object_name, "OKBLUE"))
         return True  # Simulamos que siempre se encuentra el objeto
 
     def count_objects(self, object_name):
@@ -75,7 +75,7 @@ class Task_module:
     # Navigation functions
     def go_to_place(self, place_name, graph=1, wait=True, lower_arms=True):
         """Simulación de navegación a un lugar"""
-        print(self.console_formatter.format("[NAVIGATION] Navegando", "WARNING"))
+        print(self.console_formatter.format("[NAVIGATION] Navegando hacia:"+place_name, "WARNING"))
         return True
 
     def go_back(self):

@@ -127,19 +127,6 @@ def question_and_answer(question: str) -> str:
     """
     return tm.q_a(question)
 
-@tool
-def answer_question(question: str) -> str:
-    """
-    Generates an answer to a question.
-    
-    Args:
-        question: The question to answer
-    
-    Returns:
-        Answer to the question
-    """
-    return tm.answer_question(question)
-
 # Navigation Tools
 @tool
 def go_to_location(location: str) -> bool:

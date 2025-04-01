@@ -28,7 +28,7 @@ import os
 import uuid
 
 # Local imports:
-from tools import find_object, count_objects, search_for_specific_person, find_item_with_characteristic, get_person_gesture, get_all_items, speak, listen, question_and_answer, answer_question, go_to_location, go_back, follow_person, stop_robot, ask_for_object, give_object
+from tools import find_object, count_objects, search_for_specific_person, find_item_with_characteristic, get_person_gesture, get_all_items, speak, listen, question_and_answer, go_to_location, go_back, follow_person, stop_robot, ask_for_object, give_object
 from prompts import agent_system_prompt_memory, evaluator_system_prompt, evaluator_user_prompt
 from utils import format_few_shot_examples, format_few_shot_examples_solutions
 
@@ -75,6 +75,26 @@ evaluator_examples.append({
 
 evaluator_examples.append({
     "task": "Go to the sofa and find Richard",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "explain to me how to make a sandwich",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "explain to me differntial equations",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "Remember my name. My name is David",
+    "label": "feasible"
+})
+
+evaluator_examples.append({
+    "task": "What is my name?",
     "label": "feasible"
 })
 
@@ -127,13 +147,28 @@ solution_examples.append({
     "solution":"""
     go_to_location("kitchen")
     find_object("person")
-    if "yes" in answer_question("Are you Richard?"):
+    if "yes" in question_and_answer("Are you Richard?"):
         speak("I Found Richard!")
     else:
         speak("I Could Not Find Richard!")
     """
 })
 
+solution_examples.append({
+    "task": "What is my name?",
+    "solution":"""
+    person_name = search_memory("last person who spoke with me")
+    speak(f"Your name is {person_name}")
+    """
+})
+
+solution_examples.append({
+    "task": "What is the name of the last person who spoke with you?",
+    "solution":"""
+    person_name = search_memory("last person who spoke with me")
+    speak(f"Your name is {person_name}")
+    """
+})
 
 for example in solution_examples:
     store.put(
@@ -240,13 +275,14 @@ tools = [
     speak,
     listen,
     question_and_answer,
-    answer_question,
     go_to_location,
     go_back,
     follow_person,
     stop_robot,
     ask_for_object,
-    give_object
+    give_object,
+    manage_memory_tool,
+    search_memory_tool
 ]
 
 prompt_instructions = {
@@ -295,22 +331,7 @@ robot_agent = robot_agent.compile(store=store)
 graph_png = task_agent.get_graph(xray=True).draw_mermaid_png()
 with open('graph.png', 'wb') as f:
     f.write(graph_png)
-    
-
-task_input = {
-    "task": "Go to the kitchen and find a Person",
-}
-
-
-print("Task input:", task_input)
-response = robot_agent.invoke(
-    {"task_input": task_input},
-    config=config
-)
-
-for m in response["messages"]:
-    m.pretty_print()
-    
+        
     
 while True:
     print("Waiting for task input...")
